@@ -12,21 +12,32 @@ import {
 import { myBooks, borrowRequests, communityUsers } from "./mock-data";
 import { BookCard } from "./BookCard";
 import { useAuth } from "./AuthContext";
+import { useEffect } from "react";
+import { usersService } from "../services/usersService.ts"
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const totalBooks = myBooks.length;
-  const readBooks = myBooks.filter((b) => b.readingStatus === "read").length;
-  const readingBooks = myBooks.filter((b) => b.readingStatus === "reading").length;
-  const lentBooks = myBooks.filter((b) => b.isLent).length;
-  const borrowedBooks = myBooks.filter((b) => b.isBorrowed).length;
+  const currentUserBooks = myBooks.filter((book) => book.ownerId === user?.id);
+  const totalBooks = currentUserBooks.length;
+  const readBooks = currentUserBooks.filter((b) => b.readingStatus === "read").length;
+  const readingBooks = currentUserBooks.filter((b) => b.readingStatus === "reading").length;
+  const lentBooks = currentUserBooks.filter((b) => b.isLent).length;
+  const borrowedBooks = currentUserBooks.filter((b) => b.isBorrowed).length;
+
+  useEffect( () => {
+    usersService.getCommunity().then( answ => console.log(answ) )
+  } )
 
   const recentBooks = [...myBooks]
     .sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime())
     .slice(0, 4);
 
-  const currentlyReading = myBooks.filter((b) => b.readingStatus === "reading");
+  const currentlyReading = currentUserBooks.filter((b) => b.readingStatus === "reading");
+
+  const myRequests = borrowRequests.filter(
+    (req) => currentUserBooks.some((b) => b.id === req.bookId) || req.requesterId === user?.id
+  );
 
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-7xl mx-auto">
@@ -140,13 +151,13 @@ export function DashboardPage() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Borrow requests */}
-          {borrowRequests.length > 0 && (
+          {myRequests.length > 0 && (
             <div className="bg-white rounded-xl border border-border p-4">
               <h3 className="text-foreground mb-3" style={{ fontSize: "15px", fontWeight: 600 }}>
                 Запросы на книги
               </h3>
               <div className="space-y-3">
-                {borrowRequests.map((req) => (
+                {myRequests.map((req) => (
                   <div key={req.id} className="flex items-start gap-3">
                     <img
                       src={req.requesterAvatar}

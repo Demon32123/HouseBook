@@ -1,0 +1,20 @@
+export type LibraryBookDTO = {
+    bookId: number,
+    title: string,
+    authors: Array<string>,
+    coverUrl: string,
+    description: string,
+    isbn: string,
+    year: number,
+    language: string,
+    sourceName: string,
+    sourceUrl: string,
+    readingStatus: string,
+    addedAt: string,
+    activeLoan: object,
+    isLent: boolean,
+    isAvailable: boolean,
+    hasSourceLink: boolean,
+    displayAuthor: string,
+    displayStatus: string
+}
