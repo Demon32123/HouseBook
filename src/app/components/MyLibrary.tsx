@@ -12,6 +12,7 @@ import {
 import { myBooks, genres } from "./mock-data";
 import type { ReadingStatus } from "./mock-data";
 import { BookCard } from "./BookCard";
+import { useAuth } from "./AuthContext";
 
 export function MyLibrary() {
   const [searchParams] = useSearchParams();
@@ -23,8 +24,10 @@ export function MyLibrary() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
 
+  const { user } = useAuth();
   const filteredBooks = useMemo(() => {
-    return myBooks.filter((book) => {
+    const currentUserBooks = myBooks.filter(b => b.ownerId === user?.id);
+    return currentUserBooks.filter((book) => {
       const matchesSearch =
         !search ||
         book.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -35,7 +38,7 @@ export function MyLibrary() {
         selectedStatus === "all" || book.readingStatus === selectedStatus;
       return matchesSearch && matchesGenre && matchesStatus;
     });
-  }, [search, selectedGenre, selectedStatus]);
+  }, [search, selectedGenre, selectedStatus, user?.id]);
 
   const statusOptions = [
     { value: "all", label: "Все статусы" },
@@ -56,7 +59,7 @@ export function MyLibrary() {
             Моя библиотека
           </h1>
           <p className="text-muted-foreground mt-0.5" style={{ fontSize: "14px" }}>
-            {myBooks.length} книг в коллекции
+            {filteredBooks.length} книг в коллекции
           </p>
         </div>
         <button

@@ -12,6 +12,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { myBooks, borrowRequests } from "./mock-data";
+import { useAuth } from "./AuthContext";
 
 type Tab = "lent" | "borrowed" | "requests";
 
@@ -19,13 +20,18 @@ export function LendingPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("lent");
 
-  const lentBooks = myBooks.filter((b) => b.isLent);
-  const borrowedBooks = myBooks.filter((b) => b.isBorrowed);
+  const { user } = useAuth();
+  const currentUserBooks = myBooks.filter((b) => b.ownerId === user?.id);
+  const lentBooks = currentUserBooks.filter((b) => b.isLent);
+  const borrowedBooks = currentUserBooks.filter((b) => b.isBorrowed);
+  const myRequests = borrowRequests.filter(
+    (req) => currentUserBooks.some((b) => b.id === req.bookId) || req.requesterId === user?.id
+  );
 
   const tabs = [
     { id: "lent" as const, label: "Одолжены мной", count: lentBooks.length, icon: ArrowUpRight },
     { id: "borrowed" as const, label: "Взяты у других", count: borrowedBooks.length, icon: ArrowDownLeft },
-    { id: "requests" as const, label: "Запросы", count: borrowRequests.length, icon: Inbox },
+    { id: "requests" as const, label: "Запросы", count: myRequests.length, icon: Inbox },
   ];
 
   return (
@@ -197,7 +203,7 @@ export function LendingPage() {
       {/* Requests */}
       {activeTab === "requests" && (
         <div>
-          {borrowRequests.length === 0 ? (
+          {myRequests.length === 0 ? (
             <EmptyState
               icon={Inbox}
               title="Нет запросов"
@@ -205,7 +211,7 @@ export function LendingPage() {
             />
           ) : (
             <div className="space-y-3">
-              {borrowRequests.map((req) => (
+              {myRequests.map((req) => (
                 <div
                   key={req.id}
                   className="bg-white border border-border rounded-xl p-4"
