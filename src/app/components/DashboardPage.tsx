@@ -12,6 +12,8 @@ import {
 import { myBooks, borrowRequests, communityUsers } from "./mock-data";
 import { BookCard } from "./BookCard";
 import { useAuth } from "./AuthContext";
+import { useEffect } from "react";
+import { usersService } from "../services/usersService.ts"
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -21,6 +23,10 @@ export function DashboardPage() {
   const readingBooks = myBooks.filter((b) => b.readingStatus === "reading").length;
   const lentBooks = myBooks.filter((b) => b.isLent).length;
   const borrowedBooks = myBooks.filter((b) => b.isBorrowed).length;
+
+  useEffect( () => {
+    usersService.getCommunity().then( answ => console.log(answ) )
+  } )
 
   const recentBooks = [...myBooks]
     .sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime())
