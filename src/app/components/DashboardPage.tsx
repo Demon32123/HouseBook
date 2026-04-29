@@ -12,8 +12,14 @@ import {
 import { myBooks, borrowRequests, communityUsers } from "./mock-data";
 import { BookCard } from "./BookCard";
 import { useAuth } from "./AuthContext";
-import { useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { usersService } from "../services/usersService.ts"
+import { ComminutyAccountDTO } from "../dtos/ComminutyAccountDTO.ts";
+import { LibraryBookDTO } from "../dtos/LibraryBookDTO.ts";
+import { booksService } from "../services/booksService.ts";
+import { CommLibContext } from "../contexts/CommLibContext.tsx";
+import { loansService } from "../services/loansService.ts";
+import { LoanResultDTO } from "../dtos/LoanResultDTO.ts";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -23,11 +29,33 @@ export function DashboardPage() {
   const readBooks = currentUserBooks.filter((b) => b.readingStatus === "read").length;
   const readingBooks = currentUserBooks.filter((b) => b.readingStatus === "reading").length;
   const lentBooks = currentUserBooks.filter((b) => b.isLent).length;
-  const borrowedBooks = currentUserBooks.filter((b) => b.isBorrowed).length;
+  const [library, setLibrary] = useState<Array<LibraryBookDTO>>();
+  const [borrowedBooks, setBorrowed] = useState<Array<LoanResultDTO>>()
+  const { community } = useContext(CommLibContext);
+
 
   useEffect( () => {
-    usersService.getCommunity().then( answ => console.log(answ) )
-  } )
+    if(!community.val) {
+      community.get()
+    }
+
+    loansService.getOutgoingLoans().then(answ => setBorrowed(answ))
+    booksService.getLibrary().then( answ => {setLibrary(answ); return answ} ).then(
+      lib => {
+        loansService.getIncomingLoans().then( loans => {
+          if(loans.length !== 0)
+          {
+            for(const loan of loans) {
+              const book = lib.find(b => b.bookId === loan.book.bookId)
+              console.log(book)
+              if(!book)
+                booksService.addBook(loan.book.isbn)
+            }
+          }
+        } )
+      }
+    )
+  }, [] )
 
   const recentBooks = [...myBooks]
     .sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime())
@@ -52,32 +80,32 @@ export function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+      {library && borrowedBooks && <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCard
           icon={BookOpen}
           label="Всего книг"
-          value={totalBooks}
+          value={library.length}
           color="bg-primary/10 text-primary"
         />
         <StatCard
           icon={CheckCircle2}
           label="Прочитано"
-          value={readBooks}
+          value={library.filter(b => b.readingStatus === "read").length}
           color="bg-emerald-50 text-emerald-600"
         />
         <StatCard
           icon={Clock}
           label="Читаю сейчас"
-          value={readingBooks}
+          value={library.filter(b => b.readingStatus === "reading").length}
           color="bg-amber-50 text-amber-600"
         />
         <StatCard
           icon={ArrowLeftRight}
           label="Одолжено"
-          value={lentBooks + borrowedBooks}
+          value={borrowedBooks.length}
           color="bg-violet-50 text-violet-600"
         />
-      </div>
+      </div>}
 
       {/* Currently reading */}
       {currentlyReading.length > 0 && (
@@ -141,11 +169,11 @@ export function DashboardPage() {
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {recentBooks.map((book) => (
-              <BookCard key={book.id} book={book} />
+          { library ? <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {library.slice(0, 4).map((book) => (
+              <BookCard showStatus={true} key={book.bookId} book={book} />
             ))}
-          </div>
+          </div> : null }
         </div>
 
         {/* Sidebar */}
@@ -201,15 +229,15 @@ export function DashboardPage() {
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="space-y-3">
-              {communityUsers.slice(0, 3).map((user) => (
+            { community.val ? <div className="space-y-3">
+              {community.val.slice(0, 3).map((user) => (
                 <div
                   key={user.id}
                   className="flex items-center gap-3 cursor-pointer hover:bg-muted rounded-lg p-2 -mx-2 transition-colors"
                   onClick={() => navigate(`/community/${user.id}`)}
                 >
                   <img
-                    src={user.avatar}
+                    src={user.avatarUrl}
                     alt={user.name}
                     className="w-9 h-9 rounded-full object-cover"
                   />
@@ -223,7 +251,7 @@ export function DashboardPage() {
                   </div>
                 </div>
               ))}
-            </div>
+            </div> : null}
           </div>
 
           {/* Quick add */}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Search,
@@ -8,10 +8,22 @@ import {
 } from "lucide-react";
 import { communityUsers, communityBooks } from "./mock-data";
 import { BookCard } from "./BookCard";
+import { ComminutyAccountDTO } from "../dtos/ComminutyAccountDTO";
+import { usersService } from "../services/usersService";
+import { LibraryBookDTO } from "../dtos/LibraryBookDTO";
+import { CommLibContext } from "../contexts/CommLibContext";
 
 export function CommunityPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const { community, libraries } = useContext(CommLibContext)
+
+  useEffect(() => {
+    if(!libraries.val) {
+      libraries.get()
+    }
+    console.log(community)
+  }, [])
 
   const filteredUsers = communityUsers.filter(
     (u) =>
@@ -41,39 +53,40 @@ export function CommunityPage() {
       </div>
 
       {/* Users */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {filteredUsers.map((user) => (
-          <div
-            key={user.id}
-            className="bg-white border border-border rounded-xl p-5 cursor-pointer hover:shadow-lg transition-all group"
-            onClick={() => navigate(`/community/${user.id}`)}
-          >
-            <div className="flex items-center gap-4">
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm"
-              />
-              <div className="flex-1 min-w-0">
-                <h3
-                  className="text-foreground group-hover:text-primary transition-colors truncate"
-                  style={{ fontSize: "16px", fontWeight: 600 }}
-                >
-                  {user.name}
-                </h3>
-                <div className="flex items-center gap-1.5 text-muted-foreground mt-0.5">
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span style={{ fontSize: "13px" }}>{user.booksCount} книг</span>
+      {community.val ?
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+          {community.val.map((user) => (
+            <div
+              key={user.id}
+              className="bg-white border border-border rounded-xl p-5 cursor-pointer hover:shadow-lg transition-all group"
+              onClick={() => navigate(`/community/${user.id}`)}
+            >
+              <div className="flex items-center gap-4">
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name}
+                  className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-sm"
+                />
+                <div className="flex-1 min-w-0">
+                  <h3
+                    className="text-foreground group-hover:text-primary transition-colors truncate"
+                    style={{ fontSize: "16px", fontWeight: 600 }}
+                  >
+                    {user.name}
+                  </h3>
+                  <div className="flex items-center gap-1.5 text-muted-foreground mt-0.5">
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span style={{ fontSize: "13px" }}>{user.booksCount} книг</span>
+                  </div>
                 </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
               </div>
-              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+              <p className="text-muted-foreground mt-3" style={{ fontSize: "13px", lineHeight: "1.5" }}>
+                {user.bio}
+              </p>
             </div>
-            <p className="text-muted-foreground mt-3" style={{ fontSize: "13px", lineHeight: "1.5" }}>
-              {user.bio}
-            </p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div> : null}
 
       {filteredUsers.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -94,11 +107,11 @@ export function CommunityPage() {
         <h2 className="text-foreground mb-4" style={{ fontSize: "18px", fontWeight: 600 }}>
           Книги сообщества
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
-          {communityBooks.map((book) => (
-            <BookCard key={book.id} book={book} />
+        {libraries.val ? <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
+          {libraries.val.flat(10).map((book) => (
+            <BookCard communityPage={true} key={book.bookId} book={book} />
           ))}
-        </div>
+        </div> : null}
       </section>
     </div>
   );

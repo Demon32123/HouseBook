@@ -16,5 +16,6 @@ export async function apiClient(props: apiClientProps) : Promise<Response> {
     {
         tokensObj = JSON.parse(tokens)
     }
-    return fetch(`http://localhost:3001/${path}`, { headers: { "Authorization":  `Bearer ${tokensObj.accessToken}`, "Content-Type": "application/json" }, ...params })
+    let answ = await fetch(`http://localhost:3001/${path}`, { headers: { "Authorization":  `Bearer ${tokensObj.accessToken}`, "Content-Type": "application/json" }, ...params })
+    return answ
 }

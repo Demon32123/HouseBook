@@ -17,10 +17,10 @@ export const loansService = {
     async getLoanRequestsOutgoing() {
         return await (await apiClient({ path: "loan-requests/outgoing", params: { method: "GET" } })).json()
     },
-    async getOutgoingLoans() : Promise<LoanResultDTO> {
+    async getOutgoingLoans() : Promise<Array<LoanResultDTO>> {
         return await (await apiClient({ path: "loans/outgoing", params: { method: "GET" } })).json()
     },
-    async getIncomingLoans() : Promise<LoanResultDTO> {
+    async getIncomingLoans() : Promise<Array<LoanResultDTO>> {
         return await (await apiClient({ path: "loans/incoming", params: { method: "GET" } })).json()
     },
     async returnLoan(loanId: number) {
@@ -29,7 +29,7 @@ export const loansService = {
     async createBorrow(loanRequest: BookRequestDTO) {
         await ((await apiClient({path: "loan-requests", params: { method: "POST", body: JSON.stringify(loanRequest) }})).json())
     },
-    async approveRequest(requestId: number, dueAt: Date) {
+    async approveRequest(requestId: number, dueAt: string) {
         return (await apiClient({path: `loan-requests/${requestId}/approve`, params: { method: "PATCH", body: JSON.stringify({ dueAt }) }})).json()
     },
     async rejectRequest(requestId: number) {

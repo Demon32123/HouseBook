@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   ArrowUpRight,
@@ -13,8 +13,16 @@ import {
 } from "lucide-react";
 import { myBooks, borrowRequests } from "./mock-data";
 import { useAuth } from "./AuthContext";
+import { loansService } from "../services/loansService";
+import { LoanResultDTO } from "../dtos/LoanResultDTO";
 
 type Tab = "lent" | "borrowed" | "requests";
+
+async function handleReturned(reqId: number, setBorrowed: Function) {
+  await loansService.returnLoan(reqId).then(answ => console.log(answ))
+  let borrowed = await loansService.getIncomingLoans()
+  setBorrowed(borrowed.filter(b => b.status !== "returned"))
+}
 
 export function LendingPage() {
   const navigate = useNavigate();
@@ -22,16 +30,28 @@ export function LendingPage() {
 
   const { user } = useAuth();
   const currentUserBooks = myBooks.filter((b) => b.ownerId === user?.id);
-  const lentBooks = currentUserBooks.filter((b) => b.isLent);
-  const borrowedBooks = currentUserBooks.filter((b) => b.isBorrowed);
-  const myRequests = borrowRequests.filter(
-    (req) => currentUserBooks.some((b) => b.id === req.bookId) || req.requesterId === user?.id
-  );
+
+  const [requests, setRequests] = useState(null)
+  const [lentBooks, setLentBooks] = useState<Array<LoanResultDTO>>(null)
+  const [borrowedBooks, setBorrowed] = useState<Array<LoanResultDTO>>(null)
+
+  useEffect(
+    () => {
+      loansService.getLoanRequestsIncoming().then( answ => { setRequests(answ); console.log(answ) } )
+      loansService.getIncomingLoans().then( answ => setBorrowed(answ.filter(b => b.status !== "returned")) )
+      loansService.getOutgoingLoans().then( answ => setLentBooks(answ) )
+    }, 
+    []
+  )
+
+  if (!requests || !lentBooks || !borrowedBooks) {
+    return <>Loading...</>
+  }
 
   const tabs = [
     { id: "lent" as const, label: "Одолжены мной", count: lentBooks.length, icon: ArrowUpRight },
     { id: "borrowed" as const, label: "Взяты у других", count: borrowedBooks.length, icon: ArrowDownLeft },
-    { id: "requests" as const, label: "Запросы", count: myRequests.length, icon: Inbox },
+    { id: "requests" as const, label: "Запросы", count: requests.length, icon: Inbox },
   ];
 
   return (
@@ -87,32 +107,32 @@ export function LendingPage() {
             <div className="space-y-3">
               {lentBooks.map((book) => (
                 <div
-                  key={book.id}
+                  key={book.book.bookId}
                   className="bg-white border border-border rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/book/${book.id}`)}
+                  onClick={() => navigate(`/book/${book.book.bookId}`)}
                 >
                   <img
-                    src={book.cover}
-                    alt={book.title}
+                    src={book.book.coverUrl}
+                    alt={book.book.title}
                     className="w-14 h-20 rounded-lg object-cover shrink-0"
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="text-foreground" style={{ fontSize: "15px", fontWeight: 600 }}>
-                      {book.title}
+                      {book.book.title}
                     </h3>
                     <p className="text-muted-foreground" style={{ fontSize: "13px" }}>
-                      {book.author}
+                      {book.book.authors[0]}
                     </p>
                     <div className="flex items-center gap-4 mt-2">
                       <div className="flex items-center gap-1.5 text-muted-foreground">
                         <User className="w-3.5 h-3.5" />
-                        <span style={{ fontSize: "12px" }}>Кому: {book.lentTo}</span>
+                        <span style={{ fontSize: "12px" }}>Кому: {book.borrower.name}</span>
                       </div>
-                      {book.lentDate && (
+                      {book.lentAt && (
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <Calendar className="w-3.5 h-3.5" />
                           <span style={{ fontSize: "12px" }}>
-                            {new Date(book.lentDate).toLocaleDateString("ru-RU")}
+                            {new Date(book.lentAt).toLocaleDateString("ru-RU")}
                           </span>
                         </div>
                       )}
@@ -149,34 +169,34 @@ export function LendingPage() {
             <div className="space-y-3">
               {borrowedBooks.map((book) => (
                 <div
-                  key={book.id}
+                  key={book.book.bookId}
                   className="bg-white border border-border rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/book/${book.id}`)}
+                  onClick={() => navigate(`/book/${book.book.bookId}`)}
                 >
                   <img
-                    src={book.cover}
-                    alt={book.title}
+                    src={book.book.coverUrl}
+                    alt={book.book.title}
                     className="w-14 h-20 rounded-lg object-cover shrink-0"
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className="text-foreground" style={{ fontSize: "15px", fontWeight: 600 }}>
-                      {book.title}
+                      {book.book.title}
                     </h3>
                     <p className="text-muted-foreground" style={{ fontSize: "13px" }}>
-                      {book.author}
+                      {book.book.authors[0]}
                     </p>
                     <div className="flex items-center gap-4 mt-2">
                       <div className="flex items-center gap-1.5 text-muted-foreground">
                         <User className="w-3.5 h-3.5" />
                         <span style={{ fontSize: "12px" }}>
-                          От: {book.borrowedFrom}
+                          От: {book.owner.name}
                         </span>
                       </div>
-                      {book.borrowedDate && (
+                      {book.lentAt && (
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <Calendar className="w-3.5 h-3.5" />
                           <span style={{ fontSize: "12px" }}>
-                            {new Date(book.borrowedDate).toLocaleDateString("ru-RU")}
+                            {new Date(book.lentAt).toLocaleDateString("ru-RU")}
                           </span>
                         </div>
                       )}
@@ -185,6 +205,7 @@ export function LendingPage() {
                   <div className="shrink-0 hidden sm:block">
                     <button
                       onClick={(e) => {
+                        handleReturned(book.id, setBorrowed)
                         e.stopPropagation();
                       }}
                       className="bg-primary/10 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
@@ -201,9 +222,9 @@ export function LendingPage() {
       )}
 
       {/* Requests */}
-      {activeTab === "requests" && (
+      {activeTab === "requests" && requests && (
         <div>
-          {myRequests.length === 0 ? (
+          {requests.length === 0 ? (
             <EmptyState
               icon={Inbox}
               title="Нет запросов"
@@ -211,15 +232,15 @@ export function LendingPage() {
             />
           ) : (
             <div className="space-y-3">
-              {myRequests.map((req) => (
+              {requests.map((req) => (
                 <div
                   key={req.id}
                   className="bg-white border border-border rounded-xl p-4"
                 >
                   <div className="flex items-start gap-4">
                     <img
-                      src={req.requesterAvatar}
-                      alt={req.requesterName}
+                      src={req.requester.avatarUrl}
+                      alt={req.requester.name}
                       className="w-10 h-10 rounded-full object-cover shrink-0"
                     />
                     <div className="flex-1 min-w-0">
@@ -228,14 +249,14 @@ export function LendingPage() {
                           className="text-foreground"
                           style={{ fontSize: "14px", fontWeight: 600 }}
                         >
-                          {req.requesterName}
+                          {req.requester.name}
                         </span>
                         <span className="text-muted-foreground" style={{ fontSize: "13px" }}>
                           просит книгу
                         </span>
                       </div>
                       <p className="text-foreground mt-1" style={{ fontSize: "14px", fontWeight: 500 }}>
-                        «{req.bookTitle}»
+                        «{req.book.title}»
                       </p>
                       <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
                         <Calendar className="w-3.5 h-3.5" />
@@ -243,16 +264,18 @@ export function LendingPage() {
                           {new Date(req.date).toLocaleDateString("ru-RU")}
                         </span>
                       </div>
-                      <div className="flex gap-2 mt-3">
-                        <button className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1.5" style={{ fontSize: "13px", fontWeight: 500 }}>
+                      { req.status === "pending" && <div className="flex gap-2 mt-3">
+                        <button onClick={() => { 
+                            loansService.approveRequest(req.id, new Date().toISOString()).then( () => loansService.addLoan({ bookId: req.book.bookId, borrowerUserId: Number(user.id), dueAt: new Date().toISOString() }) ); console.log("approved") 
+                          }} className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1.5" style={{ fontSize: "13px", fontWeight: 500 }}>
                           <CheckCircle2 className="w-4 h-4" />
                           Одобрить
                         </button>
-                        <button className="bg-muted text-muted-foreground px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5" style={{ fontSize: "13px", fontWeight: 500 }}>
+                        <button onClick={ () => { loansService.rejectRequest(req.id) } } className="bg-muted text-muted-foreground px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5" style={{ fontSize: "13px", fontWeight: 500 }}>
                           <XCircle className="w-4 h-4" />
                           Отклонить
                         </button>
-                      </div>
+                      </div>}
                     </div>
                     <div
                       className={`shrink-0 px-2.5 py-1 rounded-full ${

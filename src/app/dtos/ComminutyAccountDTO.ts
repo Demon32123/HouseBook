@@ -3,5 +3,5 @@ export type ComminutyAccountDTO = {
     name: string,
     avatarUrl: string,
     bio: string,
-    booksCount: 4
+    booksCount: number
 }

@@ -12,7 +12,7 @@ export const booksService = {
     async changeBookState(bookId: number, body: object) {
         return (await apiClient({ path: `books/library/${bookId}`, params: { method: "PATCH", body: JSON.stringify(body) }  })).json()
     },
-    async addBook(isbn: string) {
+    async addBook(isbn: string) : Promise<LibraryBookDTO> {
         console.log(JSON.stringify({ isbn })) 
         return (await apiClient({ path: `books/library`, params: { method: "POST", body: JSON.stringify({ isbn }) }  })).json()
     }

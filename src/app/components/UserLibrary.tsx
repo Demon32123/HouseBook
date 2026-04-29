@@ -7,12 +7,28 @@ import {
 } from "lucide-react";
 import { communityUsers, communityBooks } from "./mock-data";
 import { BookCard } from "./BookCard";
+import { useEffect, useState } from "react";
+import { ComminutyAccountDTO } from "../dtos/ComminutyAccountDTO";
+import { LibraryBookDTO } from "../dtos/LibraryBookDTO";
+import { usersService } from "../services/usersService";
+
+async function getData(userId: string, setUser: Function, setLibrary: Function) {
+  let users = await usersService.getCommunity()
+  let user = users.find(u => u.id.toString() === userId)
+  setUser(user)
+  let library = await usersService.getUserLibrary(Number(userId))
+  setLibrary(library)
+}
 
 export function UserLibrary() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const user = communityUsers.find((u) => u.id === userId);
-  const userBooks = communityBooks.filter((b) => b.ownerId === userId);
+  const [user, setUser] = useState<ComminutyAccountDTO>()
+  const [library, setLibrary] = useState<Array<LibraryBookDTO>>()
+
+  useEffect(() => {
+    getData(userId ?? "", setUser, setLibrary)
+  }, [])
 
   if (!user) {
     return (
@@ -48,7 +64,7 @@ export function UserLibrary() {
       <div className="bg-white border border-border rounded-xl p-6 mb-6">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
           <img
-            src={user.avatar}
+            src={user.avatarUrl}
             alt={user.name}
             className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md"
           />
@@ -79,10 +95,11 @@ export function UserLibrary() {
       </div>
 
       {/* Books */}
-      <h2 className="text-foreground mb-4" style={{ fontSize: "18px", fontWeight: 600 }}>
-        Библиотека ({userBooks.length})
+      { library ? <>
+        <h2 className="text-foreground mb-4" style={{ fontSize: "18px", fontWeight: 600 }}>
+        Библиотека ({library?.length})
       </h2>
-      {userBooks.length === 0 ? (
+      {library.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
             <BookOpen className="w-7 h-7 text-muted-foreground" />
@@ -96,11 +113,12 @@ export function UserLibrary() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
-          {userBooks.map((book) => (
-            <BookCard key={book.id} book={book} />
+          {library.map((book) => (
+            <BookCard key={book.bookId} book={book} />
           ))}
         </div>
       )}
+      </> : null }
     </div>
   );
 }

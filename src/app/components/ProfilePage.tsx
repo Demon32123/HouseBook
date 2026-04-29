@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "./AuthContext";
 import type { AuthUser } from "./AuthContext";
+import { usersService } from "../services/usersService";
 
 type Tab = "profile" | "privacy" | "security";
 
@@ -140,6 +141,7 @@ function ProfileTab({
       bio: bio.trim(),
       avatar: avatarUrl,
     });
+    usersService.changeMyAccount({ email, bio, avatarUrl }).then( answ => console.log(answ) )
     onSave();
   };
 

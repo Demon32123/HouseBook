@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router";
 import {
   Search,
@@ -13,6 +13,8 @@ import { myBooks, genres } from "./mock-data";
 import type { ReadingStatus } from "./mock-data";
 import { BookCard } from "./BookCard";
 import { useAuth } from "./AuthContext";
+import { LibraryBookDTO } from "../dtos/LibraryBookDTO";
+import { booksService } from "../services/booksService";
 
 export function MyLibrary() {
   const [searchParams] = useSearchParams();
@@ -23,22 +25,30 @@ export function MyLibrary() {
   const [selectedStatus, setSelectedStatus] = useState<ReadingStatus | "all">("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
-
   const { user } = useAuth();
+  const [library, setLibrary] = useState<Array<LibraryBookDTO>>()
+
+  useEffect(() => {
+    booksService.getLibrary().then( answ => setLibrary(answ) ) 
+  }, [])
+
   const filteredBooks = useMemo(() => {
-    const currentUserBooks = myBooks.filter(b => b.ownerId === user?.id);
+    if(!library)
+      return []
+    console.log(library)
+    const currentUserBooks = library;
     return currentUserBooks.filter((book) => {
+      console.log(book)
       const matchesSearch =
         !search ||
-        book.title.toLowerCase().includes(search.toLowerCase()) ||
-        book.author.toLowerCase().includes(search.toLowerCase());
+        book.title.toLowerCase().includes(search.toLowerCase());
       const matchesGenre =
-        selectedGenre === "Все" || book.genre === selectedGenre;
+        selectedGenre === "Все";
       const matchesStatus =
         selectedStatus === "all" || book.readingStatus === selectedStatus;
       return matchesSearch && matchesGenre && matchesStatus;
     });
-  }, [search, selectedGenre, selectedStatus, user?.id]);
+  }, [search, selectedGenre, selectedStatus, user?.id, library]);
 
   const statusOptions = [
     { value: "all", label: "Все статусы" },
@@ -214,13 +224,13 @@ export function MyLibrary() {
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
           {filteredBooks.map((book) => (
-            <BookCard key={book.id} book={book} showOwner />
+            <BookCard showStatus={true} key={book.bookId} book={book} showOwner />
           ))}
         </div>
       ) : (
         <div className="space-y-2">
           {filteredBooks.map((book) => (
-            <ListBookItem key={book.id} book={book} />
+            <ListBookItem key={book.bookId} book={book} />
           ))}
         </div>
       )}
@@ -228,7 +238,7 @@ export function MyLibrary() {
   );
 }
 
-function ListBookItem({ book }: { book: (typeof myBooks)[0] }) {
+function ListBookItem({ book }: { book: LibraryBookDTO }) {
   const navigate = useNavigate();
   const statusColors = {
     unread: "bg-muted text-muted-foreground",
@@ -244,10 +254,10 @@ function ListBookItem({ book }: { book: (typeof myBooks)[0] }) {
   return (
     <div
       className="bg-white border border-border rounded-xl p-3 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
-      onClick={() => navigate(`/book/${book.id}`)}
+      onClick={() => navigate(`/book/${book.bookId}`)}
     >
       <img
-        src={book.cover}
+        src={book.coverUrl}
         alt={book.title}
         className="w-12 h-16 rounded-lg object-cover shrink-0"
       />
@@ -256,7 +266,7 @@ function ListBookItem({ book }: { book: (typeof myBooks)[0] }) {
           {book.title}
         </h3>
         <p className="text-muted-foreground truncate" style={{ fontSize: "13px" }}>
-          {book.author}
+          {book.authors[0]}
         </p>
       </div>
       <span
@@ -266,7 +276,7 @@ function ListBookItem({ book }: { book: (typeof myBooks)[0] }) {
         {statusLabels[book.readingStatus]}
       </span>
       <span className="text-muted-foreground bg-muted px-2 py-0.5 rounded shrink-0 hidden md:block" style={{ fontSize: "12px" }}>
-        {book.genre}
+        {"Жанр"}
       </span>
     </div>
   );

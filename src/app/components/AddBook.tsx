@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { myBooks, genres } from "./mock-data";
 import type { ReadingStatus, StoreLink } from "./mock-data";
+import { booksService } from "../services/booksService";
 
 export function AddBook() {
   const navigate = useNavigate();
@@ -40,20 +41,27 @@ export function AddBook() {
   const [newLinkUrl, setNewLinkUrl] = useState("");
 
   const handleScrape = async () => {
+    console.log(console.log(scrapeUrl))
     if (!scrapeUrl) return;
     setIsScraping(true);
-    // Simulate scraping
-    await new Promise((r) => setTimeout(r, 2000));
-    setTitle("Братья Карамазовы");
-    setAuthor("Фёдор Достоевский");
-    setIsbn("978-5-17-090007-4");
+    let extraInfo;
+    extraInfo = await booksService.getBook(scrapeUrl)
+    if (!extraInfo.isbn) {
+      alert("Book not found")
+      setIsScraping(false)
+      return
+    }  
+    setCoverUrl(extraInfo.coverUrl)
+    setTitle(extraInfo.title);
+    setAuthor(extraInfo.authors[0]);
+    setIsbn(extraInfo.isbn);
     setDescription(
-      "Последний роман Фёдора Достоевского, который автор писал два года. Философский роман о вере, сомнении и нравственном выборе."
+      extraInfo.description
     );
-    setPages("800");
-    setYear("1880");
+    setPages(extraInfo.pagesCount.toString());
+    setYear(extraInfo.year.toString());
     setGenre("Классика");
-    setIsScraping(false);
+    setIsScraping(false)
   };
 
   const addStoreLink = () => {
@@ -70,6 +78,7 @@ export function AddBook() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    booksService.addBook(isbn)
     // In a real app, this would save to backend
     navigate("/library");
   };
