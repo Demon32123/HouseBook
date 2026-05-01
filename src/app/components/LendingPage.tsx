@@ -109,7 +109,7 @@ export function LendingPage() {
                 <div
                   key={book.book.bookId}
                   className="bg-white border border-border rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/book/${book.book.bookId}`)}
+                  onClick={() => navigate(`/book/${book.book.bookId}?owner=${book.owner.userId}`)}
                 >
                   <img
                     src={book.book.coverUrl}
@@ -146,7 +146,7 @@ export function LendingPage() {
                       className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
                       style={{ fontSize: "13px", fontWeight: 500 }}
                     >
-                      Вернули
+                      { book.status }
                     </button>
                   </div>
                 </div>
@@ -171,7 +171,7 @@ export function LendingPage() {
                 <div
                   key={book.book.bookId}
                   className="bg-white border border-border rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => navigate(`/book/${book.book.bookId}`)}
+                  onClick={() => navigate(`/book/${book.book.bookId}?owner=${book.owner.userId}`)}
                 >
                   <img
                     src={book.book.coverUrl}

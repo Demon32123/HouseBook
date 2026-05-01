@@ -29,16 +29,14 @@ export function MyLibrary() {
   const [library, setLibrary] = useState<Array<LibraryBookDTO>>()
 
   useEffect(() => {
-    booksService.getLibrary().then( answ => setLibrary(answ) ) 
+    booksService.getLibrary().then( answ => {setLibrary(answ); console.log(answ)} ) 
   }, [])
 
   const filteredBooks = useMemo(() => {
     if(!library)
       return []
-    console.log(library)
     const currentUserBooks = library;
     return currentUserBooks.filter((book) => {
-      console.log(book)
       const matchesSearch =
         !search ||
         book.title.toLowerCase().includes(search.toLowerCase());
@@ -224,7 +222,7 @@ export function MyLibrary() {
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
           {filteredBooks.map((book) => (
-            <BookCard showStatus={true} key={book.bookId} book={book} showOwner />
+            <BookCard showStatus={true} key={book.bookId} owner={Number(user.id)} book={book} />
           ))}
         </div>
       ) : (

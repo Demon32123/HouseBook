@@ -6,14 +6,25 @@ import {
   BookOpen,
   ChevronRight,
 } from "lucide-react";
-import { communityUsers, communityBooks } from "./mock-data";
 import { BookCard } from "./BookCard";
 import { ComminutyAccountDTO } from "../dtos/ComminutyAccountDTO";
-import { usersService } from "../services/usersService";
 import { LibraryBookDTO } from "../dtos/LibraryBookDTO";
 import { CommLibContext } from "../contexts/CommLibContext";
+import { AuthUser, useAuth } from "./AuthContext";
+
+function getLibs(user: AuthUser, communityUsers: Array<ComminutyAccountDTO>, libraries: Array<Array<LibraryBookDTO>>) {
+  const communityLibs: Array<{ user: ComminutyAccountDTO, book: LibraryBookDTO }> = []
+  console.log(user)
+  for(let [idx, lib] of libraries.entries()) {
+    if(communityUsers[idx].id.toString() === user.id.toString())
+      continue
+    lib.forEach( b => communityLibs.push({ user: communityUsers[idx], book: b }) )
+  }
+  return communityLibs
+}
 
 export function CommunityPage() {
+  const { user } = useAuth()
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const { community, libraries } = useContext(CommLibContext)
@@ -22,13 +33,7 @@ export function CommunityPage() {
     if(!libraries.val) {
       libraries.get()
     }
-    console.log(community)
   }, [])
-
-  const filteredUsers = communityUsers.filter(
-    (u) =>
-      !search || u.name.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div className="p-4 lg:p-6 max-w-7xl mx-auto">
@@ -55,7 +60,7 @@ export function CommunityPage() {
       {/* Users */}
       {community.val ?
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          {community.val.map((user) => (
+          {community.val.filter(u => u.id.toString() !== user?.id).map((user) => (
             <div
               key={user.id}
               className="bg-white border border-border rounded-xl p-5 cursor-pointer hover:shadow-lg transition-all group"
@@ -88,30 +93,17 @@ export function CommunityPage() {
           ))}
         </div> : null}
 
-      {filteredUsers.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-            <Users className="w-7 h-7 text-muted-foreground" />
-          </div>
-          <h3 className="text-foreground" style={{ fontSize: "16px", fontWeight: 600 }}>
-            Пользователи не найдены
-          </h3>
-          <p className="text-muted-foreground mt-1" style={{ fontSize: "14px" }}>
-            Попробуйте изменить поисковый запрос
-          </p>
-        </div>
-      )}
-
       {/* Featured community books */}
       <section>
         <h2 className="text-foreground mb-4" style={{ fontSize: "18px", fontWeight: 600 }}>
           Книги сообщества
         </h2>
-        {libraries.val ? <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
-          {libraries.val.flat(10).map((book) => (
-            <BookCard communityPage={true} key={book.bookId} book={book} />
+        {libraries.val && 
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
+          {getLibs(user, community.val, libraries.val).map((ownerAndBook) => (
+            <BookCard communityPage={true} owner={ownerAndBook.user.id} key={ownerAndBook.book.bookId} book={ownerAndBook.book} />
           ))}
-        </div> : null}
+        </div>}
       </section>
     </div>
   );

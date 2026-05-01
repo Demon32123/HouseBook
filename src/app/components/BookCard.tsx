@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { BookOpen, Clock, CheckCircle2, ArrowLeftRight } from "lucide-react";
 import { LibraryBookDTO } from "../dtos/LibraryBookDTO";
+import { ComminutyAccountDTO } from "../dtos/ComminutyAccountDTO";
 
 const statusConfig = {
   unread: { label: "Не прочитана", icon: Clock, color: "text-muted-foreground", bg: "bg-muted" },
@@ -12,9 +13,10 @@ interface BookCardProps {
   book: LibraryBookDTO;
   showOwner?: boolean;
   showStatus?: boolean
+  owner: number
 }
 
-export function BookCard({ book, showOwner, showStatus }: BookCardProps) {
+export function BookCard({ book, owner, showOwner, showStatus }: BookCardProps) {
   const navigate = useNavigate();
   const status = statusConfig[book.readingStatus];
   const StatusIcon = status.icon;
@@ -22,7 +24,7 @@ export function BookCard({ book, showOwner, showStatus }: BookCardProps) {
   return (
     <div
       className="bg-white rounded-xl border border-border hover:shadow-lg transition-all duration-200 cursor-pointer group overflow-hidden"
-      onClick={() => navigate(`/book/${book.bookId}`)}
+      onClick={() => navigate(`/book/${book.bookId}?owner=${owner}`)}
     >
       {/* Cover */}
       <div className="aspect-[3/4] overflow-hidden relative bg-muted">

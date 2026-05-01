@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
@@ -14,6 +14,8 @@ import {
 import { myBooks, genres } from "./mock-data";
 import type { ReadingStatus, StoreLink } from "./mock-data";
 import { booksService } from "../services/booksService";
+import { LibraryBookDTO } from "../dtos/LibraryBookDTO";
+import { CommLibContext } from "../contexts/CommLibContext";
 
 export function AddBook() {
   const navigate = useNavigate();
@@ -76,11 +78,22 @@ export function AddBook() {
     setStoreLinks(storeLinks.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    booksService.addBook(isbn)
-    // In a real app, this would save to backend
-    navigate("/library");
+    const book = {
+      title,
+      author,
+      authors: [],
+      isbn,
+      description,
+      coverUrl,
+      pagesCount: pages,
+      year,
+      genre,
+      readingStatus,
+    }
+    console.log(await booksService.addBook(book))
+    navigate("/library")
   };
 
   const statusOptions = [

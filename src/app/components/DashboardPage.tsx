@@ -25,36 +25,18 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const currentUserBooks = myBooks.filter((book) => book.ownerId === user?.id);
-  const totalBooks = currentUserBooks.length;
-  const readBooks = currentUserBooks.filter((b) => b.readingStatus === "read").length;
-  const readingBooks = currentUserBooks.filter((b) => b.readingStatus === "reading").length;
-  const lentBooks = currentUserBooks.filter((b) => b.isLent).length;
   const [library, setLibrary] = useState<Array<LibraryBookDTO>>();
   const [borrowedBooks, setBorrowed] = useState<Array<LoanResultDTO>>()
   const { community } = useContext(CommLibContext);
-
 
   useEffect( () => {
     if(!community.val) {
       community.get()
     }
-
-    loansService.getOutgoingLoans().then(answ => setBorrowed(answ))
-    booksService.getLibrary().then( answ => {setLibrary(answ); return answ} ).then(
-      lib => {
-        loansService.getIncomingLoans().then( loans => {
-          if(loans.length !== 0)
-          {
-            for(const loan of loans) {
-              const book = lib.find(b => b.bookId === loan.book.bookId)
-              console.log(book)
-              if(!book)
-                booksService.addBook(loan.book.isbn)
-            }
-          }
-        } )
-      }
-    )
+    loansService.getOutgoingLoans().then(answ => {setBorrowed(answ); console.log(answ)})
+    booksService.getLibrary().then( answ => {
+      setLibrary(answ); 
+    return answ})
   }, [] )
 
   const recentBooks = [...myBooks]
@@ -171,7 +153,7 @@ export function DashboardPage() {
           </div>
           { library ? <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {library.slice(0, 4).map((book) => (
-              <BookCard showStatus={true} key={book.bookId} book={book} />
+              <BookCard owner={Number(user?.id)} showStatus={true} key={book.bookId} book={book} />
             ))}
           </div> : null }
         </div>

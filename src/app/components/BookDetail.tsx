@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, useSearchParams } from "react-router";
 import {
   ArrowLeft,
   BookOpen,
@@ -26,6 +26,7 @@ import { LibraryBookDTO } from "../dtos/LibraryBookDTO";
 import { ComminutyAccountDTO } from "../dtos/ComminutyAccountDTO";
 import { useAuth } from "./AuthContext";
 import { loansService } from "../services/loansService";
+import { LoanResultDTO } from "../dtos/LoanResultDTO";
 
 const statusConfig = {
   unread: {
@@ -48,9 +49,18 @@ const statusConfig = {
   },
 };
 
+async function getData(ownerId: string, bookId: string, setOwner: Function, setBook: Function) {
+  let users = await usersService.getCommunity()
+  let user = users.find(u => u.id.toString() === ownerId)
+  let book = (await usersService.getUserLibrary(user.id)).find(b => b.bookId.toString() === bookId.toString())
+  setOwner(user)
+  setBook(book)
+}
+
 export function BookDetail() {
   const { user } = useAuth()
-  const { id } = useParams();
+  const [searchParams, _] = useSearchParams("owner")
+  const {id} = useParams();
   const navigate = useNavigate();
   const [showBorrowModal, setShowBorrowModal] = useState(false);
   const [borrowSent, setBorrowSent] = useState(false);
@@ -58,27 +68,24 @@ export function BookDetail() {
   const [ownerUser, setOwner] = useState<ComminutyAccountDTO>(null);
   const [isOwner, setIsOwner] = useState<boolean>();
   const [readingStatus, setStatus] = useState<string>();
-  const { community, libraries } = useContext(CommLibContext)
+  const [incomingLoans, setIncomingLoans] = useState<Array<LoanResultDTO>>()
+  const [outgoingLoans, setOutgoingLoans] = useState<Array<LoanResultDTO>>()
+
+  useEffect( () => {
+    console.log(id)
+    getData(searchParams.get("owner"), id, setOwner, setBook)
+    loansService.getIncomingLoans().then( answ => { setIncomingLoans(answ) } )
+    loansService.getOutgoingLoans().then( answ => setOutgoingLoans(answ) )
+  }, [])
 
   useEffect(() => { 
-    if(!libraries.val) {
-      libraries.get()
-      return
-    }
-
-    for(const [index, lib] of libraries.val.entries())
-    {
-      for(const book of lib) {
-        if(book.bookId.toString() === id)
-        {
-          setIsOwner(community.val[index].id.toString() === user?.id)
-          setBook(book)
-          setStatus(book.readingStatus)
-          setOwner(community.val[index])
-        }
+      if(ownerUser && book) {
+        setIsOwner(ownerUser.id.toString() === user?.id)
+        setStatus(book.readingStatus)
+        console.log("user: ", ownerUser)
+        console.log("book: ", book)
       }
-    }
-   }, [community])
+   }, [ownerUser, book])
 
   if (!book) {
     return (
@@ -100,7 +107,7 @@ export function BookDetail() {
 
   console.log("Владелец: ", ownerUser)
 
-  const status = statusConfig[readingStatus.toString()];
+  const status = statusConfig[readingStatus ? readingStatus.toString() : "unread"];
   const StatusIcon = status.icon;
 
   const handleBorrowRequest = () => {
@@ -108,6 +115,14 @@ export function BookDetail() {
     setBorrowSent(true);
     setShowBorrowModal(false);
   };
+
+  if(!incomingLoans || !outgoingLoans) {
+    return <>Loading...</>
+  }
+
+  const isReturned = outgoingLoans && outgoingLoans.find(l => l.book.bookId.toString() === id)?.status
+  const isBorrowed = outgoingLoans && outgoingLoans.find(l => l.book.bookId.toString() === id) && outgoingLoans.find(l => l.book.bookId.toString() === id)?.owner.userId.toString() === user.id
+  const isLent = incomingLoans && incomingLoans.find(l => l.book.bookId.toString() === id) && incomingLoans.find(l => l.book.bookId.toString() === id).borrower.userId.toString() === user.id
 
   return (
     <div className="p-4 lg:p-6 max-w-5xl mx-auto">
@@ -162,33 +177,33 @@ export function BookDetail() {
           </div>
 
           {/* Status & Lending */}
-          {/*<div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-wrap gap-2 mt-4">
             <div
               className={`${status.bg} ${status.color} px-3 py-1.5 rounded-full flex items-center gap-1.5`}
             >
               <StatusIcon className="w-4 h-4" />
               <span style={{ fontSize: "13px", fontWeight: 600 }}>{status.label}</span>
             </div>
-            {book.isLent && (
+            {isOwner && isBorrowed && isReturned !== "returned" && (
               <div className="bg-violet-50 text-violet-600 px-3 py-1.5 rounded-full flex items-center gap-1.5">
                 <ArrowLeftRight className="w-4 h-4" />
                 <span style={{ fontSize: "13px", fontWeight: 600 }}>
-                  Одолжена: {book.lentTo}
+                  Одолжена: {outgoingLoans.find(l => l.book.bookId.toString() === id)?.borrower.name}
                 </span>
               </div>
             )}
-            {book.isBorrowed && (
+            { isLent && (
               <div className="bg-primary/10 text-primary px-3 py-1.5 rounded-full flex items-center gap-1.5">
                 <ArrowLeftRight className="w-4 h-4" />
                 <span style={{ fontSize: "13px", fontWeight: 600 }}>
-                  Взята у: {book.borrowedFrom}
+                  Взята у: {incomingLoans.find(l => l.book.bookId.toString() === id)?.owner.name}
                 </span>
               </div>
             )}
-          </div>*/}
+          </div>
 
           {/* Change status if owner */}
-          {isOwner || book.isLent && (
+          {isOwner && (
             <div className="mt-4">
               <label
                 className="text-foreground block mb-2"
@@ -219,7 +234,7 @@ export function BookDetail() {
           )}
 
           {/* Request to borrow (if not owner) */}
-          {!isOwner && !book.isLent && (
+          {!isOwner && !isLent && (
             <div className="mt-4">
               {borrowSent ? (
                 <div className="bg-emerald-50 text-emerald-700 px-4 py-3 rounded-lg flex items-center gap-2">

@@ -114,7 +114,7 @@ export function UserLibrary() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-4">
           {library.map((book) => (
-            <BookCard key={book.bookId} book={book} />
+            <BookCard owner={user.id} key={book.bookId} book={book} />
           ))}
         </div>
       )}
